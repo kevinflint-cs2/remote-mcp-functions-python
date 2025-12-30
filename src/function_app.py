@@ -4,21 +4,6 @@ from typing import Dict, List
 
 import azure.functions as func
 
-# Use importlib and helper names to dynamically import the functions package in a way that
-# is robust at runtime and acceptable to static checkers (imports kept at module top).
-import importlib
-
-_pkg = __package__ or ""
-_try_names = [f"{_pkg}.functions"] if _pkg else []
-_try_names.append("functions")
-
-_functions = None
-for _name in _try_names:
-    try:
-        _functions = importlib.import_module(_name)
-        break
-    except Exception:
-        _functions = None
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -63,7 +48,11 @@ tool_properties_get_snippets_json = json.dumps(
 )
 
 
-# Functions package is dynamically imported at module top to register decorated handlers
+# Import specific function modules so static analysis / pack tooling can discover decorated functions
+try:
+    from .functions import hello_mcp, get_snippet, save_snippet  # noqa: F401
+except Exception:  # pragma: no cover - runtime fallback for different import contexts
+    from functions import hello_mcp, get_snippet, save_snippet  # type: ignore
 
 # FUNCTION `hello_mcp` moved to `src/functions/hello_mcp.py`
 
