@@ -1,6 +1,8 @@
 # Auto-generated from function_app.py: function `save_snippet`
 # NOTE: move any function-specific imports here if necessary
 from typing import Any, TYPE_CHECKING
+# Context can be a JSON string or a dict
+ContextType = dict | str
 import json
 import logging
 import azure.functions as func
@@ -42,7 +44,7 @@ else:
 @app.generic_output_binding(
     arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH
 )
-def save_snippet(file: func.Out[str], context: Any) -> str:
+def save_snippet(file: func.Out[str], context: ContextType) -> str:
     """Save snippet content into blob storage using the provided arguments in `context`.
 
     Args:
