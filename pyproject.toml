@@ -1,0 +1,55 @@
+[project]
+name = "remote-mcp-functions-python"
+version = "0.1.0"
+description = "Azure Function App MCP Server Template"
+authors = [
+    {name = "kevin.flint@cybersecuritysquared.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "azure-functions (>=1.24.0,<2.0.0)"
+]
+
+[tool.poetry]
+packages = [{ include = "src" }]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88
+src = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["src"]
+
+[tool.poe.tasks.export]
+cmd = "poetry export -f requirements.txt --output requirements.txt --without-hashes"
+
+[tool.poe.tasks.lint]
+shell = "ruff format src && ruff check src --fix && ruff check src"
+
+[tool.poe.tasks.typecheck]
+cmd = "mypy src"
+
+[tool.poe.tasks.test]
+cmd = "pytest"
+
+[tool.poe.tasks.check]
+shell = "poe export && poe lint && poe typecheck && poe test"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.14.10"
+mypy = "^1.19.1"
+pytest = "^9.0.2"
+poethepoet = "^0.39.0"
+
