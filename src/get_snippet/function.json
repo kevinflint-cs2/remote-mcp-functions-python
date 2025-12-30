@@ -1,0 +1,20 @@
+{
+  "scriptFile": "../functions/get_snippet.py",
+  "entryPoint": "get_snippet",
+  "bindings": [
+    {
+      "name": "context",
+      "type": "mcpToolTrigger",
+      "direction": "in",
+      "toolName": "get_snippet",
+      "toolProperties": []
+    },
+    {
+      "name": "file",
+      "type": "blob",
+      "direction": "in",
+      "connection": "AzureWebJobsStorage",
+      "path": "snippets/{mcptoolargs.snippetname}.json"
+    }
+  ]
+}

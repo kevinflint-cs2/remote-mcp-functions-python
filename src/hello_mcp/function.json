@@ -1,0 +1,14 @@
+{
+  "scriptFile": "../functions/hello_mcp.py",
+  "entryPoint": "hello_mcp",
+  "bindings": [
+    {
+      "name": "context",
+      "type": "mcpToolTrigger",
+      "direction": "in",
+      "toolName": "hello_mcp",
+      "description": "Hello world.",
+      "toolProperties": []
+    }
+  ]
+}
