@@ -1,5 +1,7 @@
 import json
 import logging
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 import azure.functions as func
 
@@ -11,13 +13,13 @@ _SNIPPET_PROPERTY_NAME = "snippet"
 _BLOB_PATH = "snippets/{mcptoolargs." + _SNIPPET_NAME_PROPERTY_NAME + "}.json"
 
 
+@dataclass
 class ToolProperty:
-    def __init__(self, property_name: str, property_type: str, description: str):
-        self.propertyName = property_name
-        self.propertyType = property_type
-        self.description = description
+    propertyName: str
+    propertyType: str
+    description: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str]:
         return {
             "propertyName": self.propertyName,
             "propertyType": self.propertyType,
@@ -26,12 +28,12 @@ class ToolProperty:
 
 
 # Define the tool properties using the ToolProperty class
-tool_properties_save_snippets_object = [
+tool_properties_save_snippets_object: List[ToolProperty] = [
     ToolProperty(_SNIPPET_NAME_PROPERTY_NAME, "string", "The name of the snippet."),
     ToolProperty(_SNIPPET_PROPERTY_NAME, "string", "The content of the snippet."),
 ]
 
-tool_properties_get_snippets_object = [
+tool_properties_get_snippets_object: List[ToolProperty] = [
     ToolProperty(_SNIPPET_NAME_PROPERTY_NAME, "string", "The name of the snippet.")
 ]
 
@@ -39,6 +41,8 @@ tool_properties_get_snippets_object = [
 tool_properties_save_snippets_json = json.dumps(
     [prop.to_dict() for prop in tool_properties_save_snippets_object]
 )
+
+# Note: the trigger context may come in different shapes; we accept Any here.
 tool_properties_get_snippets_json = json.dumps(
     [prop.to_dict() for prop in tool_properties_get_snippets_object]
 )
@@ -51,9 +55,8 @@ tool_properties_get_snippets_json = json.dumps(
     description="Hello world.",
     toolProperties="[]",
 )
-def hello_mcp(context) -> None:
-    """
-    A simple function that returns a greeting message.
+def hello_mcp(context: Any) -> str:
+    """A simple function that returns a greeting message.
 
     Args:
         context: The trigger context (not used in this function).
@@ -74,9 +77,8 @@ def hello_mcp(context) -> None:
 @app.generic_input_binding(
     arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH
 )
-def get_snippet(file: func.InputStream, context) -> str:
-    """
-    Retrieves a snippet by name from Azure Blob Storage.
+def get_snippet(file: func.InputStream, context: Any) -> str:
+    """Retrieves a snippet by name from Azure Blob Storage.
 
     Args:
         file (func.InputStream): The input binding to read the snippet from Azure Blob Storage.
@@ -100,10 +102,33 @@ def get_snippet(file: func.InputStream, context) -> str:
 @app.generic_output_binding(
     arg_name="file", type="blob", connection="AzureWebJobsStorage", path=_BLOB_PATH
 )
-def save_snippet(file: func.Out[str], context) -> str:
-    content = json.loads(context)
-    snippet_name_from_args = content["arguments"][_SNIPPET_NAME_PROPERTY_NAME]
-    snippet_content_from_args = content["arguments"][_SNIPPET_PROPERTY_NAME]
+def save_snippet(file: func.Out[str], context: Any) -> str:
+    """Save snippet content into blob storage using the provided arguments in `context`.
+
+    Args:
+        file: Output blob binding.
+        context: Trigger context (expected to be a JSON string or dict with an "arguments" mapping).
+
+    Returns:
+        A success or error message string.
+    """
+    if isinstance(context, str):
+        try:
+            content = json.loads(context)
+        except json.JSONDecodeError:
+            logging.exception("Failed to decode context as JSON")
+            return "Invalid request payload"
+    elif isinstance(context, dict):
+        content = context
+    else:
+        return "Invalid request payload"
+
+    arguments = content.get("arguments")
+    if not isinstance(arguments, dict):
+        return "Invalid arguments"
+
+    snippet_name_from_args = arguments.get(_SNIPPET_NAME_PROPERTY_NAME)
+    snippet_content_from_args = arguments.get(_SNIPPET_PROPERTY_NAME)
 
     if not snippet_name_from_args:
         return "No snippet name provided"
