@@ -12,13 +12,14 @@ from typing import Iterable
 EXPECTED_FUNCTIONS = {"hello_mcp", "get_snippet", "save_snippet"}
 
 
-def run(cmd: list[str], cwd: Path) -> None:
-    """Run a subprocess command in the given directory."""
+def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    """Run a subprocess command in the given directory and return the result."""
     result = subprocess.run(cmd, cwd=cwd, check=False, capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError(
             f"Command failed: {' '.join(cmd)}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
         )
+    return result
 
 
 def require_tool(name: str) -> None:
@@ -40,14 +41,28 @@ def pack_functions(source_dir: Path, output: Path) -> Path:
     package = (output if output.suffix else output / "src.zip").resolve()
     package.parent.mkdir(parents=True, exist_ok=True)
 
-    run(["func", "pack", "--output", str(package)], cwd=source_dir)
+    proc = run(["func", "pack", "--output", str(package)], cwd=source_dir)
 
-    if not package.exists():
-        raise FileNotFoundError(
-            f"Expected package at {package} after packing; did `func pack` succeed?"
+    if package.exists():
+        return package
+
+    # Fallback: if the CLI wrote a differently named zip, surface it to unblock CI.
+    zips = sorted(package.parent.glob("*.zip"))
+    if len(zips) == 1:
+        return zips[0]
+
+    raise FileNotFoundError(
+        "\n".join(
+            [
+                f"Expected package at {package} after packing.",
+                "`func pack` stdout:",
+                proc.stdout.strip() or "<empty>",
+                "`func pack` stderr:",
+                proc.stderr.strip() or "<empty>",
+                f"Zip files present in {package.parent}: {[p.name for p in zips]}",
+            ]
         )
-
-    return package
+    )
 
 
 def validate_function_names(source_dir: Path, expected: Iterable[str]) -> set[str]:
