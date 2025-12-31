@@ -21,7 +21,7 @@ param enableTable bool = false
 param enableFile bool = false
 
 @allowed(['SystemAssigned', 'UserAssigned'])
-param identityType string = 'UserAssigned'
+param identityType string = 'SystemAssigned'
 
 var applicationInsightsIdentity = 'ClientId=${identityClientId};Authorization=AAD'
 var kind = 'functionapp,linux'
@@ -30,7 +30,7 @@ var kind = 'functionapp,linux'
 var baseAppSettings = {
   // Only include required credential settings unconditionally
   AzureWebJobsStorage__credential: 'managedidentity'
-  AzureWebJobsStorage__clientId: identityClientId
+  AzureWebJobsStorage__clientId: identityType == 'UserAssigned' ? identityClientId : ''
   
   // Application Insights settings are always included
   APPLICATIONINSIGHTS_AUTHENTICATION_STRING: applicationInsightsIdentity
@@ -72,9 +72,7 @@ module api 'br/public:avm/res/web/site:0.15.1' = {
     serverFarmResourceId: appServicePlanId
     managedIdentities: {
       systemAssigned: identityType == 'SystemAssigned'
-      userAssignedResourceIds: [
-        '${identityId}'
-      ]
+      userAssignedResourceIds: identityType == 'UserAssigned' ? [identityId] : []
     }
     functionAppConfig: {
       deployment: {

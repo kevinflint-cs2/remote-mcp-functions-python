@@ -56,6 +56,13 @@ param logAnalyticsName string = ''
 param resourceGroupName string = ''
 param storageAccountName string = ''
 param vNetName string = ''
+@description('Resource ID of an existing Key Vault that stores the AbuseIPDB API key.')
+param keyVaultResourceId string = ''
+@description('Secret URI for the AbuseIPDB API key in Key Vault.')
+param abuseIpDbSecretUri string = ''
+@description('Identity type for the Function App managed identity.')
+@allowed(['SystemAssigned', 'UserAssigned'])
+param identityType string = 'SystemAssigned'
 @description('Id of the user identity to be used for testing and debugging. This is not required in production. Leave empty if not needed.')
 param principalId string = deployer().objectId
 
@@ -64,6 +71,8 @@ var resourceToken = toLower(uniqueString(subscription().id, environmentName, loc
 var tags = { 'azd-env-name': environmentName }
 var functionAppName = !empty(apiServiceName) ? apiServiceName : '${abbrs.webSitesFunctions}api-${resourceToken}'
 var deploymentStorageContainerName = 'app-package-${take(functionAppName, 32)}-${take(toLower(uniqueString(functionAppName, resourceToken)), 7)}'
+var keyVaultResourceGroup = !empty(keyVaultResourceId) ? split(keyVaultResourceId, '/')[4] : ''
+var keyVaultName = !empty(keyVaultResourceId) ? split(keyVaultResourceId, '/')[8] : ''
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -118,8 +127,10 @@ module api './app/api.bicep' = {
     deploymentStorageContainerName: deploymentStorageContainerName
     identityId: apiUserAssignedIdentity.outputs.resourceId
     identityClientId: apiUserAssignedIdentity.outputs.clientId
-    appSettings: {
-    }
+    identityType: identityType
+    appSettings: !empty(abuseIpDbSecretUri) ? {
+      ABUSEIPDB_API_KEY: '@Microsoft.KeyVault(SecretUri=${abuseIpDbSecretUri})'
+    } : {}
     virtualNetworkSubnetId: vnetEnabled ? serviceVirtualNetwork.outputs.appSubnetID : ''
   }
 }
@@ -172,6 +183,18 @@ module rbac 'app/rbac.bicep' = {
     enableQueue: storageEndpointConfig.enableQueue
     enableTable: storageEndpointConfig.enableTable
     allowUserIdentityPrincipal: storageEndpointConfig.allowUserIdentityPrincipal
+  }
+}
+
+// Grant the Function App system-assigned identity access to Key Vault secrets when configured
+module keyVaultAccess 'app/keyvault-role.bicep' = if (!empty(keyVaultResourceId) && identityType == 'SystemAssigned') {
+  name: 'keyVaultSecretsAccess'
+  scope: resourceGroup(subscription().subscriptionId, keyVaultResourceGroup)
+  params: {
+    keyVaultName: keyVaultName
+    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+    roleDefinitionId: '4633458b-17de-408a-b874-0445c86b69e6'
+    functionAppName: functionAppName
   }
 }
 
