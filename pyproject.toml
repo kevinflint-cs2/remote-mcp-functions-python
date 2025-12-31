@@ -47,6 +47,9 @@ cmd = "pytest"
 [tool.poe.tasks.check]
 shell = "poe export && poe lint && poe typecheck && poe test"
 
+[tool.poe.tasks.pack]
+cmd = "python scripts/pack_and_validate.py --source src --output artifacts/pack/src.zip"
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.14.10"
 mypy = "^1.19.1"
