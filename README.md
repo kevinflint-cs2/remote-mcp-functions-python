@@ -13,6 +13,8 @@ packing.
 ## Features
 
 - MCP tool triggers for `hello_mcp`, `save_snippet`, and `get_snippet`
+- MCP tool triggers for `hello_mcp`, `save_snippet`, `get_snippet`,
+  `abuseipdb_check_ip`, and `abuseipdb_report_ip`
 - Snippet persistence in blob storage under `snippets/{snippetname}.json`
 - Strict typing, Ruff formatting/linting, and pytest coverage for edge cases
 - Packaging guard script to ensure required functions are discoverable before deploy
@@ -65,6 +67,10 @@ packing.
 - `save_snippet`: Expects arguments `snippetname` and `snippet`; writes content to
   `snippets/{snippetname}.json`.
 - `get_snippet`: Expects argument `snippetname`; returns stored snippet content.
+- `abuseipdb_check_ip`: Expects argument `ip`; queries AbuseIPDB for reputation
+  data.
+- `abuseipdb_report_ip`: Expects arguments `ip`, `categories`, and `comment`;
+  reports abuse to AbuseIPDB.
 
 Example payload for saving a snippet:
 

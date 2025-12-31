@@ -9,7 +9,13 @@ import sys
 from pathlib import Path
 from typing import Iterable
 
-EXPECTED_FUNCTIONS = {"hello_mcp", "get_snippet", "save_snippet"}
+EXPECTED_FUNCTIONS = {
+    "hello_mcp",
+    "get_snippet",
+    "save_snippet",
+    "abuseipdb_check_ip",
+    "abuseipdb_report_ip",
+}
 
 
 def run(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -77,8 +83,13 @@ def validate_function_names(source_dir: Path, expected: Iterable[str]) -> set[st
     if app is None:
         raise RuntimeError("function_app.app was not found.")
 
-    functions = getattr(app, "_functions", [])
-    names = {getattr(func, "name", None) for func in functions if getattr(func, "name", None)}
+    # Prefer the public getter; fallback to legacy private attribute
+    functions = app.get_functions() if hasattr(app, "get_functions") else getattr(app, "_functions", [])
+    names = {
+        getattr(func, "_name", None) or getattr(func, "name", None)
+        for func in functions
+        if getattr(func, "_name", None) or getattr(func, "name", None)
+    }
 
     missing = set(expected) - names
     if missing:
