@@ -35,7 +35,9 @@ def pack_functions(source_dir: Path, output: Path) -> Path:
     backward compatibility.
     """
 
-    package = output if output.suffix else output / "src.zip"
+    # Always pass an absolute path to avoid cwd-relative surprises when running in CI
+    # where we `cd` into the source directory for `func pack`.
+    package = (output if output.suffix else output / "src.zip").resolve()
     package.parent.mkdir(parents=True, exist_ok=True)
 
     run(["func", "pack", "--output", str(package)], cwd=source_dir)
