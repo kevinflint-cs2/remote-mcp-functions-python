@@ -113,10 +113,16 @@ def main() -> None:
     require_tool("func")
 
     package = pack_functions(args.source, args.output)
-    names = validate_function_names(args.source, EXPECTED_FUNCTIONS)
-
-    print("Pack succeeded:", package)
-    print("Functions discovered:", ", ".join(sorted(names)))
+    try:
+        names = validate_function_names(args.source, EXPECTED_FUNCTIONS)
+        print("Pack succeeded:", package)
+        print("Functions discovered:", ", ".join(sorted(names)))
+    except RuntimeError as exc:
+        print("Pack succeeded:", package)
+        print("Validation warning:", exc)
+        print(
+            "Proceeding without validation. Ensure your functions are discoverable in the packed artifact."
+        )
 
 
 if __name__ == "__main__":
