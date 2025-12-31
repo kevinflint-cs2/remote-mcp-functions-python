@@ -1,23 +1,3 @@
----
-post_title: "Remote MCP Functions (Python)"
-author1: "Kevin Flint"
-post_slug: "remote-mcp-functions-python"
-microsoft_alias: "kevinflint"
-featured_image: "https://via.placeholder.com/1200x630?text=Remote+MCP+Functions+Python"
-categories:
-  - azure
-  - serverless
-tags:
-  - azure-functions
-  - python
-  - mcp
-  - serverless
-  - poetry
-ai_note: "Authored with AI assistance."
-summary: "Azure Functions app exposing MCP tools for storing and retrieving snippets via blob storage."
-post_date: "2025-12-31"
----
-
 ## Remote MCP Functions (Python)
 
 Azure Functions (Python v2 decorator model) that exposes Model Context Protocol tools
