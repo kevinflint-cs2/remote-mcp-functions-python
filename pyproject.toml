@@ -33,7 +33,7 @@ minversion = "7.0"
 testpaths = ["src"]
 
 [tool.poe.tasks.export]
-cmd = "poetry export -f requirements.txt --output requirements.txt --without-hashes"
+cmd = "poetry export -f requirements.txt --output src/requirements.txt --without-hashes"
 
 [tool.poe.tasks.lint]
 shell = "ruff format src && ruff check src --fix && ruff check src"
