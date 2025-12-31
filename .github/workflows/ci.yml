@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Azure Functions Core Tools
+        run: sudo npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r src/requirements.txt
+
+      - name: Pack and validate functions
+        run: python scripts/pack_and_validate.py --source src --output artifacts/pack

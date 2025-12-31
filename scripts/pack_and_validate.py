@@ -1,0 +1,94 @@
+"""Builds a Functions pack artifact and validates that expected functions are registered."""
+from __future__ import annotations
+
+import argparse
+import importlib
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import Iterable
+
+EXPECTED_FUNCTIONS = {"hello_mcp", "get_snippet", "save_snippet"}
+
+
+def run(cmd: list[str], cwd: Path) -> None:
+    """Run a subprocess command in the given directory."""
+    result = subprocess.run(cmd, cwd=cwd, check=False, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Command failed: {' '.join(cmd)}\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+
+def require_tool(name: str) -> None:
+    """Ensure a CLI tool is available on PATH."""
+    if shutil.which(name) is None:
+        raise RuntimeError(f"Required tool '{name}' is not on PATH.")
+
+
+def pack_functions(source_dir: Path, output_dir: Path) -> Path:
+    """Run `func pack` and return the generated inner package path."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    run(["func", "pack", "--output", str(output_dir)], cwd=source_dir)
+    package = output_dir / "src.zip"
+    if not package.exists():
+        raise FileNotFoundError(
+            f"Expected package at {package} after packing; run `func pack` succeeded?"
+        )
+    return package
+
+
+def validate_function_names(source_dir: Path, expected: Iterable[str]) -> set[str]:
+    """Import the FunctionApp and assert expected function names are present."""
+    sys.path.insert(0, str(source_dir))
+    try:
+        module = importlib.import_module("function_app")
+    finally:
+        sys.path.pop(0)
+
+    app = getattr(module, "app", None)
+    if app is None:
+        raise RuntimeError("function_app.app was not found.")
+
+    functions = getattr(app, "_functions", [])
+    names = {getattr(func, "name", None) for func in functions if getattr(func, "name", None)}
+
+    missing = set(expected) - names
+    if missing:
+        raise RuntimeError(f"Missing expected functions: {sorted(missing)}")
+
+    return names
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=Path("src"),
+        help="Path to the Functions app source directory",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("artifacts") / "pack",
+        help="Output directory for the packed artifact",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    require_tool("func")
+
+    package = pack_functions(args.source, args.output)
+    names = validate_function_names(args.source, EXPECTED_FUNCTIONS)
+
+    print("Pack succeeded:", package)
+    print("Functions discovered:", ", ".join(sorted(names)))
+
+
+if __name__ == "__main__":
+    main()

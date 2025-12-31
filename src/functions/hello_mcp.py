@@ -1,9 +1,9 @@
 # Auto-generated from function_app.py: function `hello_mcp`
 # NOTE: move any function-specific imports here if necessary
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
-# For decorated trigger parameter typing, annotate context as a dict or str to satisfy worker validation
-ContextType = dict | str
+# For decorated trigger parameter typing, annotate context as a simple string payload
+ContextType = str
 
 if TYPE_CHECKING:
     # For type checkers, import the symbols from the top-level module

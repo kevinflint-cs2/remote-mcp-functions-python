@@ -1,11 +1,12 @@
 # Auto-generated from function_app.py: function `save_snippet`
 # NOTE: move any function-specific imports here if necessary
-from typing import Any, TYPE_CHECKING
-# Context can be a JSON string or a dict
-ContextType = dict | str
+from typing import TYPE_CHECKING
 import json
 import logging
 import azure.functions as func
+
+# Context arrives as a JSON string; annotate as str for worker compatibility
+ContextType = str
 
 if TYPE_CHECKING:
     from function_app import (

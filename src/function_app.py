@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, TYPE_CHECKING
 
 import azure.functions as func
 
@@ -49,10 +49,10 @@ tool_properties_get_snippets_json = json.dumps(
 
 
 # Import specific function modules so static analysis / pack tooling can discover decorated functions
-try:
-    from .functions import hello_mcp, get_snippet, save_snippet  # noqa: F401
-except Exception:  # pragma: no cover - runtime fallback for different import contexts
-    from functions import hello_mcp, get_snippet, save_snippet  # type: ignore
+if TYPE_CHECKING:
+    from functions import hello_mcp, get_snippet, save_snippet  # pragma: no cover
+else:
+    from functions import hello_mcp, get_snippet, save_snippet  # noqa: F401
 
 # FUNCTION `hello_mcp` moved to `src/functions/hello_mcp.py`
 
