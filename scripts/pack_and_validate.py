@@ -27,15 +27,24 @@ def require_tool(name: str) -> None:
         raise RuntimeError(f"Required tool '{name}' is not on PATH.")
 
 
-def pack_functions(source_dir: Path, output_dir: Path) -> Path:
-    """Run `func pack` and return the generated inner package path."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    run(["func", "pack", "--output", str(output_dir)], cwd=source_dir)
-    package = output_dir / "src.zip"
+def pack_functions(source_dir: Path, output: Path) -> Path:
+    """Run `func pack` and return the generated package path.
+
+    The Functions CLI writes a zip to the exact path supplied to `--output`;
+    when callers provide a directory, we default to `src.zip` inside it for
+    backward compatibility.
+    """
+
+    package = output if output.suffix else output / "src.zip"
+    package.parent.mkdir(parents=True, exist_ok=True)
+
+    run(["func", "pack", "--output", str(package)], cwd=source_dir)
+
     if not package.exists():
         raise FileNotFoundError(
-            f"Expected package at {package} after packing; run `func pack` succeeded?"
+            f"Expected package at {package} after packing; did `func pack` succeed?"
         )
+
     return package
 
 
@@ -72,8 +81,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("artifacts") / "pack",
-        help="Output directory for the packed artifact",
+        default=Path("artifacts") / "pack" / "src.zip",
+        help=(
+            "Output path for the packed artifact; if a directory is provided, "
+            "'src.zip' will be written under it."
+        ),
     )
     return parser.parse_args()
 
