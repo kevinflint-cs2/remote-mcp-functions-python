@@ -1,6 +1,8 @@
 param storageAccountName string
 param appInsightsName string
-param managedIdentityPrincipalId string // Principal ID for the Managed Identity
+// Principal ID for the Managed Identity (kept for backward compatibility; not used)
+@description('Principal ID for the Function App identity used for storage and monitoring access.')
+param functionIdentityPrincipalId string
 param userIdentityPrincipalId string = '' // Principal ID for the User Identity
 param allowUserIdentityPrincipal bool = false // Flag to enable user identity role assignments
 param enableBlob bool = true
@@ -23,11 +25,11 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing
 
 // Role assignment for Storage Account (Blob) - Managed Identity
 resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableBlob) {
-  name: guid(storageAccount.id, managedIdentityPrincipalId, storageRoleDefinitionId) // Use managed identity ID
+  name: guid(storageAccount.id, functionIdentityPrincipalId, storageRoleDefinitionId) // Use function identity ID
   scope: storageAccount
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', storageRoleDefinitionId)
-    principalId: managedIdentityPrincipalId // Use managed identity ID
+    principalId: functionIdentityPrincipalId // Use function identity ID
     principalType: 'ServicePrincipal' // Managed Identity is a Service Principal
   }
 }
@@ -45,11 +47,11 @@ resource storageRoleAssignment_User 'Microsoft.Authorization/roleAssignments@202
 
 // Role assignment for Storage Account (Queue) - Managed Identity
 resource queueRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableQueue) {
-  name: guid(storageAccount.id, managedIdentityPrincipalId, queueRoleDefinitionId) // Use managed identity ID
+  name: guid(storageAccount.id, functionIdentityPrincipalId, queueRoleDefinitionId) // Use function identity ID
   scope: storageAccount
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', queueRoleDefinitionId)
-    principalId: managedIdentityPrincipalId // Use managed identity ID
+    principalId: functionIdentityPrincipalId // Use function identity ID
     principalType: 'ServicePrincipal' // Managed Identity is a Service Principal
   }
 }
@@ -67,11 +69,11 @@ resource queueRoleAssignment_User 'Microsoft.Authorization/roleAssignments@2022-
 
 // Role assignment for Storage Account (Table) - Managed Identity
 resource tableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (enableTable) {
-  name: guid(storageAccount.id, managedIdentityPrincipalId, tableRoleDefinitionId) // Use managed identity ID
+  name: guid(storageAccount.id, functionIdentityPrincipalId, tableRoleDefinitionId) // Use function identity ID
   scope: storageAccount
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', tableRoleDefinitionId)
-    principalId: managedIdentityPrincipalId // Use managed identity ID
+    principalId: functionIdentityPrincipalId // Use function identity ID
     principalType: 'ServicePrincipal' // Managed Identity is a Service Principal
   }
 }
@@ -89,11 +91,11 @@ resource tableRoleAssignment_User 'Microsoft.Authorization/roleAssignments@2022-
 
 // Role assignment for Application Insights - Managed Identity
 resource appInsightsRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(applicationInsights.id, managedIdentityPrincipalId, monitoringRoleDefinitionId) // Use managed identity ID
+  name: guid(applicationInsights.id, functionIdentityPrincipalId, monitoringRoleDefinitionId) // Use function identity ID
   scope: applicationInsights
   properties: {
     roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', monitoringRoleDefinitionId)
-    principalId: managedIdentityPrincipalId // Use managed identity ID
+    principalId: functionIdentityPrincipalId // Use function identity ID
     principalType: 'ServicePrincipal' // Managed Identity is a Service Principal
   }
 }

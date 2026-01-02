@@ -12,6 +12,11 @@ _SNIPPET_NAME_PROPERTY_NAME = "snippetname"
 _SNIPPET_PROPERTY_NAME = "snippet"
 _BLOB_PATH = "snippets/{mcptoolargs." + _SNIPPET_NAME_PROPERTY_NAME + "}.json"
 
+# AbuseIPDB tool property names
+_ABUSEIPDB_IP_PROPERTY_NAME = "ip"
+_ABUSEIPDB_CATEGORIES_PROPERTY_NAME = "categories"
+_ABUSEIPDB_COMMENT_PROPERTY_NAME = "comment"
+
 
 @dataclass
 class ToolProperty:
@@ -37,6 +42,26 @@ tool_properties_get_snippets_object: List[ToolProperty] = [
     ToolProperty(_SNIPPET_NAME_PROPERTY_NAME, "string", "The name of the snippet.")
 ]
 
+tool_properties_abuseipdb_check_ip_object: List[ToolProperty] = [
+    ToolProperty(
+        _ABUSEIPDB_IP_PROPERTY_NAME, "string", "IPv4 or IPv6 address to check."
+    ),
+]
+
+tool_properties_abuseipdb_report_ip_object: List[ToolProperty] = [
+    ToolProperty(
+        _ABUSEIPDB_IP_PROPERTY_NAME, "string", "IPv4 or IPv6 address to report."
+    ),
+    ToolProperty(
+        _ABUSEIPDB_CATEGORIES_PROPERTY_NAME,
+        "string",
+        "Comma-separated AbuseIPDB category IDs.",
+    ),
+    ToolProperty(
+        _ABUSEIPDB_COMMENT_PROPERTY_NAME, "string", "Description of the abuse."
+    ),
+]
+
 # Convert the tool properties to JSON
 tool_properties_save_snippets_json = json.dumps(
     [prop.to_dict() for prop in tool_properties_save_snippets_object]
@@ -47,12 +72,25 @@ tool_properties_get_snippets_json = json.dumps(
     [prop.to_dict() for prop in tool_properties_get_snippets_object]
 )
 
+tool_properties_abuseipdb_check_ip_json = json.dumps(
+    [prop.to_dict() for prop in tool_properties_abuseipdb_check_ip_object]
+)
+
+tool_properties_abuseipdb_report_ip_json = json.dumps(
+    [prop.to_dict() for prop in tool_properties_abuseipdb_report_ip_object]
+)
+
 
 # Import specific function modules so static analysis / pack tooling can discover decorated functions
 if TYPE_CHECKING:
-    from functions import hello_mcp, get_snippet, save_snippet  # pragma: no cover
+    from functions import (
+        abuseipdb,
+        get_snippet,
+        hello_mcp,
+        save_snippet,
+    )  # pragma: no cover
 else:
-    from functions import hello_mcp, get_snippet, save_snippet  # noqa: F401
+    from functions import abuseipdb, get_snippet, hello_mcp, save_snippet  # noqa: F401
 
 # FUNCTION `hello_mcp` moved to `src/functions/hello_mcp.py`
 

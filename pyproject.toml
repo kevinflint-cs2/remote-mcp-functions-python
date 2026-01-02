@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "azure-functions (>=1.24.0,<2.0.0)"
+    , "requests (>=2.32,<3.0)"
 ]
 
 [tool.poetry]
@@ -33,7 +34,7 @@ minversion = "7.0"
 testpaths = ["src"]
 
 [tool.poe.tasks.export]
-cmd = "poetry export -f requirements.txt --output requirements.txt --without-hashes"
+cmd = "poetry export -f requirements.txt --output src/requirements.txt --without-hashes"
 
 [tool.poe.tasks.lint]
 shell = "ruff format src && ruff check src --fix && ruff check src"
@@ -55,4 +56,5 @@ ruff = "^0.14.10"
 mypy = "^1.19.1"
 pytest = "^9.0.2"
 poethepoet = "^0.39.0"
+types-requests = "^2.32.0"
 

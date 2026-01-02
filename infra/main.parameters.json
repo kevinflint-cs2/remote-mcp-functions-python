@@ -13,6 +13,15 @@
     },
     "vnetEnabled": {
       "value": "${VNET_ENABLED}"
+    },
+    "keyVaultResourceId": {
+      "value": "${KEYVAULT_RESOURCE_ID}"
+    },
+    "abuseIpDbSecretUri": {
+      "value": "${ABUSEIPDB_SECRET_URI}"
+    },
+    "identityType": {
+      "value": "SystemAssigned"
     }
   }
 }

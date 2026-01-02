@@ -1,5 +1,8 @@
-# Do not include azure-functions-worker in this file
-# The Python Worker is managed by the Azure Functions platform
-# Manually managing azure-functions-worker may cause unexpected issues
-
-azure-functions
+azure-functions==1.24.0 ; python_version >= "3.11"
+certifi==2025.11.12 ; python_version >= "3.11"
+charset-normalizer==3.4.4 ; python_version >= "3.11"
+idna==3.11 ; python_version >= "3.11"
+markupsafe==3.0.3 ; python_version >= "3.11"
+requests==2.32.5 ; python_version >= "3.11"
+urllib3==2.6.2 ; python_version >= "3.11"
+werkzeug==3.1.4 ; python_version >= "3.11"

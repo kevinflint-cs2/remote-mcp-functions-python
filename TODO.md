@@ -1,5 +1,4 @@
 # Primary Goal: Build a Azure Function App MCP Template
-
 - [X] Remove Git repo data
 - [X] Move over instructions
 - [X] Move over agents
@@ -9,6 +8,10 @@
 - [X] Push Initial Repo
 - [X] Move functions into their own directory
 - [X] Build an implementation prompt, that builds an implementation instruction md
-- [ ] Build a lint agent
-- [ ] Build a typecheck agent
-- [ ] Build a commit agent
+- [X] Update Poe Task for Requirements.txt
+- [X] Write MCP Function for AbuseIPDB and update poetry with requirements
+- [X] Add System MI to Function App
+- [X] Give MI permissions to key vault
+- [X] Add Envar to FA
+- [ ] Test MCP Functionality using Github Copilot
+- [ ] Test MCP Functionality using Azure AI Foundry
