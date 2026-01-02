@@ -58,8 +58,15 @@ param storageAccountName string = ''
 param vNetName string = ''
 @description('Resource ID of an existing Key Vault that stores the AbuseIPDB API key.')
 param keyVaultResourceId string = ''
+@description('Optional name for the Key Vault to create when no existing vault is provided.')
+param keyVaultName string = ''
+@description('Enable purge protection on the Key Vault. Defaults to false to ease test teardown; enable in production.')
+param keyVaultPurgeProtectionEnabled bool = false
 @description('Secret URI for the AbuseIPDB API key in Key Vault.')
 param abuseIpDbSecretUri string = ''
+@secure()
+@description('Optional AbuseIPDB API key value to seed into Key Vault as a secret named AbuseIpDbAPIKey.')
+param abuseIpDbSecretValue string = ''
 @description('Identity type for the Function App managed identity.')
 @allowed(['SystemAssigned', 'UserAssigned'])
 param identityType string = 'SystemAssigned'
@@ -72,7 +79,7 @@ var tags = { 'azd-env-name': environmentName }
 var functionAppName = !empty(apiServiceName) ? apiServiceName : '${abbrs.webSitesFunctions}api-${resourceToken}'
 var deploymentStorageContainerName = 'app-package-${take(functionAppName, 32)}-${take(toLower(uniqueString(functionAppName, resourceToken)), 7)}'
 var keyVaultResourceGroup = !empty(keyVaultResourceId) ? split(keyVaultResourceId, '/')[4] : ''
-var keyVaultName = !empty(keyVaultResourceId) ? split(keyVaultResourceId, '/')[8] : ''
+var keyVaultNameFromResourceId = !empty(keyVaultResourceId) ? split(keyVaultResourceId, '/')[8] : ''
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -80,6 +87,24 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   location: location
   tags: tags
 }
+
+// Determine Key Vault naming and scoping when creating a dedicated vault
+var keyVaultNameToCreate = !empty(keyVaultName) ? keyVaultName : 'kv-${resourceToken}'
+var keyVaultResourceGroupEffective = !empty(keyVaultResourceGroup) ? keyVaultResourceGroup : rg.name
+
+module keyVaultModule './app/keyvault.bicep' = if (empty(keyVaultResourceId)) {
+  name: 'keyVault'
+  scope: rg
+  params: {
+    name: keyVaultNameToCreate
+    location: location
+    tags: tags
+    purgeProtectionEnabled: keyVaultPurgeProtectionEnabled
+  }
+}
+
+var keyVaultResourceIdEffective = !empty(keyVaultResourceId) ? keyVaultResourceId : keyVaultModule.outputs.resourceId
+var keyVaultNameEffective = !empty(keyVaultNameFromResourceId) ? keyVaultNameFromResourceId : keyVaultModule.outputs.name
 
 // User assigned managed identity to be used by the function app to reach storage and other dependencies
 // Assign specific roles to this identity in the RBAC module
@@ -109,6 +134,17 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.1.1' = {
   }
 }
 
+// Seed AbuseIPDB secret into the vault when provided
+module abuseIpDbSecret './app/keyvault-secret.bicep' = if (!empty(abuseIpDbSecretValue)) {
+  name: 'abuseIpDbSecret'
+  scope: resourceGroup(keyVaultResourceGroupEffective)
+  params: {
+    vaultName: keyVaultNameEffective
+    secretName: 'AbuseIpDbAPIKey'
+    secretValue: abuseIpDbSecretValue
+  }
+}
+
 module api './app/api.bicep' = {
   name: 'api'
   scope: rg
@@ -128,8 +164,8 @@ module api './app/api.bicep' = {
     identityId: apiUserAssignedIdentity.outputs.resourceId
     identityClientId: apiUserAssignedIdentity.outputs.clientId
     identityType: identityType
-    appSettings: !empty(abuseIpDbSecretUri) ? {
-      ABUSEIPDB_API_KEY: '@Microsoft.KeyVault(SecretUri=${abuseIpDbSecretUri})'
+    appSettings: !empty(abuseIpDbSecretUriEffective) ? {
+      ABUSEIPDB_API_KEY: '@Microsoft.KeyVault(SecretUri=${abuseIpDbSecretUriEffective})'
     } : {}
     virtualNetworkSubnetId: vnetEnabled ? serviceVirtualNetwork.outputs.appSubnetID : ''
   }
@@ -170,6 +206,12 @@ var storageEndpointConfig = {
   allowUserIdentityPrincipal: true   // Allow interactive user identity to access for testing and debugging
 }
 
+// Resolve secret URI preference: seeded secret takes precedence, otherwise use provided URI
+var abuseIpDbSecretUriEffective = !empty(abuseIpDbSecretValue) ? abuseIpDbSecret.outputs.secretUri : (!empty(abuseIpDbSecretUri) ? abuseIpDbSecretUri : '')
+
+// Resolve which principal should receive storage and monitoring roles
+var functionIdentityPrincipalId = identityType == 'SystemAssigned' ? api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID : apiUserAssignedIdentity.outputs.principalId
+
 // Consolidated Role Assignments
 module rbac 'app/rbac.bicep' = {
   name: 'rbacAssignments'
@@ -177,22 +219,25 @@ module rbac 'app/rbac.bicep' = {
   params: {
     storageAccountName: storage.outputs.name
     appInsightsName: monitoring.outputs.name
-    managedIdentityPrincipalId: apiUserAssignedIdentity.outputs.principalId
+    functionIdentityPrincipalId: functionIdentityPrincipalId
     userIdentityPrincipalId: principalId
     enableBlob: storageEndpointConfig.enableBlob
     enableQueue: storageEndpointConfig.enableQueue
     enableTable: storageEndpointConfig.enableTable
     allowUserIdentityPrincipal: storageEndpointConfig.allowUserIdentityPrincipal
   }
+  dependsOn: [
+    api
+  ]
 }
 
-// Grant the Function App system-assigned identity access to Key Vault secrets when configured
-module keyVaultAccess 'app/keyvault-role.bicep' = if (!empty(keyVaultResourceId) && identityType == 'SystemAssigned') {
+// Grant the Function App system-assigned identity access to Key Vault secrets
+module keyVaultAccess 'app/keyvault-role.bicep' = if (identityType == 'SystemAssigned' && !empty(keyVaultNameEffective)) {
   name: 'keyVaultSecretsAccess'
-  scope: resourceGroup(subscription().subscriptionId, keyVaultResourceGroup)
+  scope: resourceGroup(keyVaultResourceGroupEffective)
   params: {
-    keyVaultName: keyVaultName
-    principalId: api.outputs.SERVICE_API_IDENTITY_PRINCIPAL_ID
+    keyVaultName: keyVaultNameEffective
+    principalId: functionIdentityPrincipalId
     roleDefinitionId: '4633458b-17de-408a-b874-0445c86b69e6'
     functionAppName: functionAppName
   }
@@ -254,3 +299,5 @@ output AZURE_LOCATION string = location
 output AZURE_TENANT_ID string = tenant().tenantId
 output SERVICE_API_NAME string = api.outputs.SERVICE_API_NAME
 output AZURE_FUNCTION_NAME string = api.outputs.SERVICE_API_NAME
+output KEY_VAULT_RESOURCE_ID string = keyVaultResourceIdEffective
+output ABUSEIPDB_SECRET_URI string = abuseIpDbSecretUriEffective
