@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/kevinflint-cs2-remote-mcp-functions-python-badge.png)](https://mseep.ai/app/kevinflint-cs2-remote-mcp-functions-python)
+
 ## Remote MCP Functions (Python)
 
 Azure Functions (Python v2 decorator model) that exposes Model Context Protocol tools
